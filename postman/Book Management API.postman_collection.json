@@ -18,9 +18,12 @@
               "",
               "pm.test(\"Returns created book\", function () {",
               "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
               "    pm.expect(json).to.have.property('title');",
               "    pm.expect(json).to.have.property('author');",
               "    pm.expect(json).to.have.property('isbn');",
+              "    pm.environment.set('bookId', String(json.id));",
+              "    pm.collectionVariables.set('bookId', String(json.id));",
               "});"
             ],
             "type": "text/javascript"
@@ -89,7 +92,7 @@
               "",
               "pm.test(\"Returns the correct book\", function () {",
               "    const json = pm.response.json();",
-              "    pm.expect(json.id).to.eql(pm.variables.get('bookId'));",
+              "    pm.expect(String(json.id)).to.eql(pm.variables.get('bookId'));",
               "});"
             ],
             "type": "text/javascript"
@@ -188,31 +191,6 @@
       }
     },
     {
-      "name": "Delete Book",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 204\", function () {",
-              "    pm.response.to.have.status(204);",
-              "});"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "DELETE",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/books/{{bookId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "books", "{{bookId}}"]
-        }
-      }
-    },
-    {
       "name": "Error - Create Book With Duplicate ISBN",
       "event": [
         {
@@ -248,6 +226,31 @@
           "raw": "{{baseUrl}}/api/books",
           "host": ["{{baseUrl}}"],
           "path": ["api", "books"]
+        }
+      }
+    },
+    {
+      "name": "Delete Book",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 204\", function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/books/{{bookId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "books", "{{bookId}}"]
         }
       }
     },

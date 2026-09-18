@@ -46,3 +46,7 @@ Desktop.ini
 .env
 .env.*
 *.local
+# Runtime
+app.pid
+app.log
+app.err.log
