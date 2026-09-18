@@ -3,6 +3,8 @@
 Simple RESTful API for managing books built with **Spring Boot** and **PostgreSQL**.
 This project is built as a technical assessment for the Java Developer position.
 
+Repository: https://github.com/anwarsyaifudin/springboot-microservice-task--Anwar-Syaifudin-
+
 ## Overview
 
 Architecture:
@@ -36,6 +38,31 @@ PostgreSQL
 - JUnit 5 + Mockito + MockMvc
 - Postman
 - Git
+
+## Features
+
+- Full CRUD REST API: `POST`, `GET`, `GET/{id}`, `PUT`, `PATCH`, `DELETE`
+- `PUT` replaces **all** fields, `PATCH` updates **only provided** fields
+- Bean Validation with friendly `400` responses (field-to-message error map)
+- `404` handling with a consistent JSON error body
+- ISBN uniqueness enforced both by the service layer (`409 Conflict`) and the
+  database unique constraint
+- Layered architecture: Controller → Service → Repository
+- Unit + integration tests (22 tests)
+- Simple demo web frontend served by the same application
+- Credentials are not hardcoded (environment variables)
+
+## Quick Start
+
+```bash
+# 1. Set database env vars, then run
+export DB_URL=jdbc:postgresql://localhost:5432/book_management
+export DB_USERNAME=postgres
+export DB_PASSWORD=postgres
+
+mvn spring-boot:run          # API  -> http://localhost:8080/api/books
+                             # Web  -> http://localhost:8080/
+```
 
 ## Requirements
 
@@ -279,9 +306,9 @@ Test classes:
 
 | Test                      | Scope                                          |
 |---------------------------|------------------------------------------------|
-| `BookServiceImplTest`     | Service unit tests with Mockito               |
-| `BookControllerTest`      | Web layer tests with MockMvc (`@WebMvcTest`)  |
-| `BookRepositoryTest`      | JPA integration tests with in-memory H2       |
+| `BookServiceImplTest`     | 11 service unit tests with Mockito            |
+| `BookControllerTest`      | 8 web layer tests with MockMvc (`@WebMvcTest`)|
+| `BookRepositoryTest`      | 3 JPA integration tests with in-memory H2     |
 
 Highlights covered:
 
@@ -298,7 +325,7 @@ A ready-to-use collection is included under `postman/`:
 - `Book Management API.postman_collection.json`
 - `Book Management API (Local).postman_environment.json`
 
-Import steps:
+### Postman (GUI)
 
 1. Open Postman → Import → select the collection JSON.
 2. Import → select the environment JSON.
@@ -311,9 +338,22 @@ Import steps:
 | `baseUrl`  | `http://localhost:8080` |
 | `bookId`   | `1`                   |
 
+> `bookId` is updated automatically by the *Create Book* request, so the other
+> requests always target the book that was just created.
+
+### Postman CLI (Newman)
+
+```bash
+npm install -g newman
+newman run "postman/Book Management API.postman_collection.json" \
+  -e "postman/Book Management API (Local).postman_environment.json"
+```
+
 The collection includes the 6 CRUD operations plus error-case requests
 (duplicate ISBN and non-existent book).
 
 ## Author
 
 **Anwar Syaifudin**
+
+- GitHub: https://github.com/anwarsyaifudin
