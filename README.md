@@ -92,6 +92,13 @@ mvn package
 java -jar target/bookmanagement-0.0.1-SNAPSHOT.jar
 ```
 
+## Web UI (Demo Frontend)
+
+A simple demo frontend is served by the same application at
+`http://localhost:8080/`. It is a single HTML page (`src/main/resources/static/index.html`)
+that lets you create, view, update, partially update (PATCH), and delete books
+directly from the browser.
+
 ## API Endpoints
 
 | Method | Endpoint              | Description             | Success |

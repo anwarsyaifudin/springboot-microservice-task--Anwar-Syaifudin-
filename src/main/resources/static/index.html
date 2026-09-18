@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Management Service</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+            background: #f3f5f9;
+            color: #243b53;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        h1 { font-size: 22px; }
+        .badge {
+            background: #e8f0fe;
+            color: #1a56cc;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .panel {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+        }
+        .panel h2 { font-size: 16px; margin-bottom: 14px; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        form .full { grid-column: 1 / -1; }
+        label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cdd7e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        input:focus { outline: 2px solid #1a56cc; border-color: transparent; }
+        .actions { display: flex; gap: 10px; margin-top: 6px; }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary { background: #1a56cc; color: #fff; }
+        .btn-primary:hover { background: #1648a6; }
+        .btn-secondary { background: #e2e8f0; color: #243b53; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: #e11d48; color: #fff; }
+        .btn-danger:hover { background: #be123c; }
+        .btn-small { padding: 5px 10px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #edf2f7; }
+        th { font-size: 12px; text-transform: uppercase; color: #64748b; }
+        tr:hover { background: #f8fafc; }
+        .empty { color: #94a3b8; text-align: center; padding: 24px 0; }
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #243b53;
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+            max-width: 360px;
+            box-shadow: 0 4px 12px rgba(16, 24, 40, 0.25);
+            white-space: pre-line;
+        }
+        #toast.error { background: #e11d48; }
+        #toast.success { background: #059669; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Book Management Service</h1>
+        <span class="badge">Spring Boot + PostgreSQL</span>
+    </header>
+
+    <div class="panel">
+        <h2 id="form-title">Tambah Buku</h2>
+        <form id="book-form">
+            <div>
+                <label for="title">Judul</label>
+                <input id="title" name="title" required placeholder="Clean Code">
+            </div>
+            <div>
+                <label for="author">Penulis</label>
+                <input id="author" name="author" required placeholder="Robert C. Martin">
+            </div>
+            <div>
+                <label for="isbn">ISBN</label>
+                <input id="isbn" name="isbn" required placeholder="9780132350884">
+            </div>
+            <div>
+                <label for="publishedDate">Tanggal Terbit</label>
+                <input id="publishedDate" name="publishedDate" type="date">
+            </div>
+            <div>
+                <label>Mode</label>
+                <span id="mode-hint" style="font-size: 12px; color: #64748b;">POST (tambah buku baru)</span>
+            </div>
+            <div class="actions" style="align-self: end;">
+                <button type="submit" id="submit-btn" class="btn-primary">Simpan Buku</button>
+                <button type="button" id="cancel-btn" class="btn-secondary" style="display:none;">Batal</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Daftar Buku</h2>
+        <div style="overflow-x: auto;">
+            <table id="books-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Judul</th>
+                    <th>Penulis</th>
+                    <th>ISBN</th>
+                    <th>Tanggal Terbit</th>
+                    <th>Aksi</th>
+                </tr>
+                </thead>
+                <tbody id="books-body">
+                <tr><td colspan="6" class="empty">Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    const form = document.getElementById('book-form');
+    const formTitle = document.getElementById('form-title');
+    const modeHint = document.getElementById('mode-hint');
+    const submitBtn = document.getElementById('submit-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const tbody = document.getElementById('books-body');
+
+    let editingId = null;
+
+    function formPayload() {
+        return {
+            title: document.getElementById('title').value.trim(),
+            author: document.getElementById('author').value.trim(),
+            isbn: document.getElementById('isbn').value.trim(),
+            publishedDate: document.getElementById('publishedDate').value || null
+        };
+    }
+
+    function toast(message, type) {
+        const t = document.getElementById('toast');
+        t.textContent = message;
+        t.className = type || '';
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 3500);
+    }
+
+    function esc(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+    }
+
+    async function handleResponse(response) {
+        if (response.ok) return null;
+        let message = 'HTTP ' + response.status;
+        try {
+            const data = await response.json();
+            if (data.message) {
+                message = data.message;
+                if (data.errors) {
+                    const details = Object.entries(data.errors)
+                        .map(([k, v]) => k + ': ' + v)
+                        .join('\n');
+                    message += '\n' + details;
+                }
+            }
+        } catch (e) { /* not json */ }
+        throw new Error(message);
+    }
+
+    async function loadBooks() {
+        const res = await fetch('/api/books');
+        if (!res.ok) return;
+        const books = await res.json();
+        if (!books.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty">Belum ada buku.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = books.map(b => `
+            <tr>
+                <td>${b.id}</td>
+                <td>${esc(b.title)}</td>
+                <td>${esc(b.author)}</td>
+                <td>${esc(b.isbn)}</td>
+                <td>${b.publishedDate || '-'}</td>
+                <td>
+                    <button class="btn-secondary btn-small" onclick="editBook(${b.id})">Ubah</button>
+                    <button class="btn-secondary btn-small" onclick="patchTitle(${b.id}, '${esc(b.title)}')">Ubah Judul (PATCH)</button>
+                    <button class="btn-danger btn-small" onclick="deleteBook(${b.id}, '${esc(b.title)}')">Hapus</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function resetForm() {
+        form.reset();
+        editingId = null;
+        formTitle.textContent = 'Tambah Buku';
+        modeHint.textContent = 'POST (tambah buku baru)';
+        submitBtn.textContent = 'Simpan Buku';
+        cancelBtn.style.display = 'none';
+    }
+
+    function editBook(id) {
+        fetch('/api/books/' + id)
+            .then(res => res.json())
+            .then(book => {
+                document.getElementById('title').value = book.title;
+                document.getElementById('author').value = book.author;
+                document.getElementById('isbn').value = book.isbn;
+                document.getElementById('publishedDate').value = book.publishedDate || '';
+                editingId = id;
+                formTitle.textContent = 'Ubah Buku #' + id;
+                modeHint.textContent = 'PUT (update semua field)';
+                submitBtn.textContent = 'Simpan Perubahan';
+                cancelBtn.style.display = 'inline-block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            })
+            .catch(err => toast('Gagal memuat buku: ' + err.message, 'error'));
+    }
+
+    function patchTitle(id, currentTitle) {
+        const newTitle = prompt('Judul baru (PATCH hanya mengubah judul):', currentTitle);
+        if (newTitle === null) return;
+        fetch('/api/books/' + id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle.trim() })
+        })
+            .then(handleResponse)
+            .then(() => { toast('Judul diperbarui (PATCH)', 'success'); loadBooks(); })
+            .catch(err => toast(err.message, 'error'));
+    }
+
+    function deleteBook(id, title) {
+        if (!confirm('Hapus buku "' + title + '" (id ' + id + ')?')) return;
+        fetch('/api/books/' + id, { method: 'DELETE' })
+            .then(handleResponse)
+            .then(() => { toast('Buku dihapus', 'success'); loadBooks(); })
+            .catch(err => toast(err.message, 'error'));
+    }
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const payload = formPayload();
+        const url = editingId ? '/api/books/' + editingId : '/api/books';
+        const method = editingId ? 'PUT' : 'POST';
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(handleResponse)
+            .then(() => {
+                toast(editingId ? 'Buku diperbarui (PUT)' : 'Buku berhasil dibuat', 'success');
+                resetForm();
+                loadBooks();
+            })
+            .catch(err => toast(err.message, 'error'));
+    });
+
+    cancelBtn.addEventListener('click', resetForm);
+
+    loadBooks();
+</script>
+</body>
+</html>
